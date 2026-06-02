@@ -9,6 +9,7 @@ later steps.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import datasets
 from app.core.config import settings
 
 app = FastAPI(title=settings.app_name, version="0.1.0")
@@ -31,3 +32,7 @@ def health_check() -> dict[str, str]:
         "app": settings.app_name,
         "environment": settings.environment,
     }
+
+
+# Feature routers
+app.include_router(datasets.router)

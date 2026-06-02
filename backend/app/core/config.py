@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     # CORS: which frontend origin is allowed to call this API
     frontend_origin: str = "http://localhost:3000"
 
+    # File uploads
+    upload_dir: str = "uploads"  # where uploaded datasets are stored on disk
+    max_upload_bytes: int = 50 * 1024 * 1024  # 50 MB hard limit
+    preview_rows: int = 10  # how many rows to return in a dataset preview
+
 
 # Single shared instance, imported across the app.
 settings = Settings()
