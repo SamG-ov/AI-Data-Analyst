@@ -19,6 +19,15 @@ async function parseError(res: Response, fallback: string): Promise<string> {
   return `${fallback} (${res.status})`;
 }
 
+/** Small GET helper that throws a readable error on failure. */
+async function getJson<T>(path: string, fallback: string): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`);
+  if (!res.ok) {
+    throw new Error(await parseError(res, fallback));
+  }
+  return (await res.json()) as T;
+}
+
 // --- Health -----------------------------------------------------------------
 
 export interface HealthResponse {
@@ -29,11 +38,7 @@ export interface HealthResponse {
 
 /** Calls the backend /health endpoint. Throws if the request fails. */
 export async function getHealth(): Promise<HealthResponse> {
-  const res = await fetch(`${API_BASE_URL}/health`);
-  if (!res.ok) {
-    throw new Error(`Backend responded with ${res.status}`);
-  }
-  return (await res.json()) as HealthResponse;
+  return getJson<HealthResponse>("/health", "Backend unreachable");
 }
 
 // --- Datasets ---------------------------------------------------------------
@@ -100,11 +105,10 @@ export interface CleanResult {
 
 /** Fetches the data-quality report for a dataset. */
 export async function getQualityReport(datasetId: string): Promise<QualityReport> {
-  const res = await fetch(`${API_BASE_URL}/datasets/${datasetId}/quality`);
-  if (!res.ok) {
-    throw new Error(await parseError(res, "Failed to load quality report"));
-  }
-  return (await res.json()) as QualityReport;
+  return getJson<QualityReport>(
+    `/datasets/${datasetId}/quality`,
+    "Failed to load quality report",
+  );
 }
 
 /** Runs auto-clean and returns the new cleaned dataset + actions taken. */
@@ -116,4 +120,61 @@ export async function cleanDataset(datasetId: string): Promise<CleanResult> {
     throw new Error(await parseError(res, "Failed to clean dataset"));
   }
   return (await res.json()) as CleanResult;
+}
+
+// --- EDA & charts -----------------------------------------------------------
+
+// Mirrors the backend's app/schemas/eda.py one-to-one.
+export interface NumericStats {
+  name: string;
+  count: number;
+  missing: number;
+  mean: number | null;
+  std: number | null;
+  min: number | null;
+  q25: number | null;
+  median: number | null;
+  q75: number | null;
+  max: number | null;
+}
+
+export interface CategoricalStats {
+  name: string;
+  count: number;
+  missing: number;
+  unique: number;
+  top: string | null;
+  top_freq: number;
+}
+
+export interface EdaReport {
+  n_rows: number;
+  n_columns: number;
+  numeric: NumericStats[];
+  categorical: CategoricalStats[];
+}
+
+export interface Chart {
+  column: string;
+  type: "histogram" | "bar";
+  title: string;
+  labels: string[];
+  values: number[];
+}
+
+export interface ChartsResponse {
+  charts: Chart[];
+}
+
+/** Fetches descriptive statistics for a dataset. */
+export async function getEda(datasetId: string): Promise<EdaReport> {
+  return getJson<EdaReport>(`/datasets/${datasetId}/eda`, "Failed to load EDA");
+}
+
+/** Fetches pre-computed chart data for a dataset. */
+export async function getCharts(datasetId: string): Promise<ChartsResponse> {
+  return getJson<ChartsResponse>(
+    `/datasets/${datasetId}/charts`,
+    "Failed to load charts",
+  );
 }

@@ -8,7 +8,8 @@ from fastapi import APIRouter, File, HTTPException, UploadFile
 from app.core.config import settings
 from app.schemas.cleaning import CleanResult, QualityReport
 from app.schemas.dataset import DatasetSummary
-from app.services import cleaning_service, dataset_service, storage
+from app.schemas.eda import ChartsResponse, EdaReport
+from app.services import cleaning_service, dataset_service, eda_service, storage
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -78,3 +79,17 @@ def clean_dataset(dataset_id: str) -> CleanResult:
     new_id, _ = storage.save_dataframe(cleaned)
     summary = dataset_service.summarize(cleaned, new_id, f"cleaned_{dataset_id}.csv")
     return CleanResult(dataset=summary, actions=actions)
+
+
+@router.get("/{dataset_id}/eda", response_model=EdaReport)
+def get_eda(dataset_id: str) -> EdaReport:
+    """Return descriptive statistics for numeric and categorical columns."""
+    df = _load_dataset_or_404(dataset_id)
+    return eda_service.describe(df)
+
+
+@router.get("/{dataset_id}/charts", response_model=ChartsResponse)
+def get_charts(dataset_id: str) -> ChartsResponse:
+    """Return pre-computed chart data (histograms / category bars)."""
+    df = _load_dataset_or_404(dataset_id)
+    return ChartsResponse(charts=eda_service.build_charts(df))
