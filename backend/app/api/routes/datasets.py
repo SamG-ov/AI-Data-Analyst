@@ -7,7 +7,7 @@ import pandas as pd
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.core.config import settings
-from app.schemas.chat import AnswerResponse, QuestionRequest
+from app.schemas.chat import AnswerResponse, InsightsResponse, QuestionRequest
 from app.schemas.cleaning import CleanResult, QualityReport
 from app.schemas.dataset import DatasetSummary
 from app.schemas.eda import ChartsResponse, EdaReport
@@ -120,3 +120,24 @@ def ask_dataset(dataset_id: str, payload: QuestionRequest) -> AnswerResponse:
         ) from exc
 
     return AnswerResponse(answer=answer)
+
+
+@router.post("/{dataset_id}/insights", response_model=InsightsResponse)
+def get_insights(dataset_id: str) -> InsightsResponse:
+    """Generate an AI analysis (summary, findings, recommendations)."""
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="AI features are not configured. Set ANTHROPIC_API_KEY in the backend .env.",
+        )
+
+    df = _load_dataset_or_404(dataset_id)
+
+    try:
+        report = ai_service.generate_insights(df)
+    except anthropic.APIError as exc:
+        raise HTTPException(
+            status_code=502, detail=f"AI service error: {exc}"
+        ) from exc
+
+    return InsightsResponse(report=report)

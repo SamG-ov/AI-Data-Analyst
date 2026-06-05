@@ -98,3 +98,47 @@ def answer_question(df: pd.DataFrame, question: str) -> str:
     return "".join(
         block.text for block in message.content if block.type == "text"
     ).strip()
+
+
+INSIGHTS_SYSTEM_PROMPT = (
+    "You are a senior data analyst producing a brief, business-oriented analysis "
+    "of a dataset. Use ONLY the dataset profile provided (schema, summary "
+    "statistics, and a sample of rows). Respond in plain text — do NOT use "
+    "markdown symbols like #, *, or backticks. Use exactly these three sections, "
+    "each as a header line followed by bullet lines that start with '- ':\n"
+    "Summary\nKey Findings\nRecommendations\n"
+    "Be specific and cite numbers from the profile. If the data is insufficient "
+    "for a confident conclusion, say so and note what else would be needed."
+)
+
+
+def generate_insights(df: pd.DataFrame) -> str:
+    """Ask Claude for a structured analytical write-up of the dataset."""
+    if not settings.anthropic_api_key:
+        raise AIConfigError("ANTHROPIC_API_KEY is not configured.")
+
+    profile = build_profile(df)
+    client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+
+    message = client.messages.create(
+        model=settings.anthropic_model,
+        max_tokens=settings.ai_max_tokens,
+        system=INSIGHTS_SYSTEM_PROMPT,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": f"Dataset profile:\n\n{profile}",
+                        "cache_control": {"type": "ephemeral"},
+                    },
+                    {"type": "text", "text": "Provide the analysis now."},
+                ],
+            }
+        ],
+    )
+
+    return "".join(
+        block.text for block in message.content if block.type == "text"
+    ).strip()

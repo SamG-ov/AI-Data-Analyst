@@ -200,3 +200,22 @@ export async function askQuestion(
   }
   return (await res.json()) as AnswerResponse;
 }
+
+// --- AI insights ------------------------------------------------------------
+
+export interface InsightsResponse {
+  report: string;
+}
+
+/** Generates an AI analysis (summary, findings, recommendations). */
+export async function generateInsights(
+  datasetId: string,
+): Promise<InsightsResponse> {
+  const res = await fetch(`${API_BASE_URL}/datasets/${datasetId}/insights`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Failed to generate insights"));
+  }
+  return (await res.json()) as InsightsResponse;
+}

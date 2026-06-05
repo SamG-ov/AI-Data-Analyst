@@ -6,6 +6,7 @@ import DatasetPreview from "@/components/DatasetPreview";
 import DataQuality from "@/components/DataQuality";
 import EdaPanel from "@/components/EdaPanel";
 import AskData from "@/components/AskData";
+import Insights from "@/components/Insights";
 import type { CleanAction, CleanResult, DatasetSummary } from "@/lib/api";
 
 export default function Home() {
@@ -49,6 +50,7 @@ export default function Home() {
           )}
 
           <AskData datasetId={dataset.id} />
+          <Insights datasetId={dataset.id} />
           <DataQuality datasetId={dataset.id} onCleaned={handleCleaned} />
           <EdaPanel datasetId={dataset.id} />
           <DatasetPreview dataset={dataset} />
