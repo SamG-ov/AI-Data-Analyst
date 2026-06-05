@@ -4,14 +4,21 @@ from pathlib import Path
 
 import anthropic
 import pandas as pd
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
 
 from app.core.config import settings
 from app.schemas.chat import AnswerResponse, InsightsResponse, QuestionRequest
 from app.schemas.cleaning import CleanResult, QualityReport
 from app.schemas.dataset import DatasetSummary
 from app.schemas.eda import ChartsResponse, EdaReport
-from app.services import ai_service, cleaning_service, dataset_service, eda_service, storage
+from app.services import (
+    ai_service,
+    cleaning_service,
+    dataset_service,
+    eda_service,
+    report_service,
+    storage,
+)
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -141,3 +148,35 @@ def get_insights(dataset_id: str) -> InsightsResponse:
         ) from exc
 
     return InsightsResponse(report=report)
+
+
+@router.get("/{dataset_id}/report")
+def get_report(
+    dataset_id: str,
+    include_insights: bool = Query(default=False),
+) -> Response:
+    """Download a self-contained HTML report for the dataset."""
+    df = _load_dataset_or_404(dataset_id)
+
+    insights: str | None = None
+    if include_insights:
+        if not settings.anthropic_api_key:
+            raise HTTPException(
+                status_code=503,
+                detail="AI features are not configured. Set ANTHROPIC_API_KEY in the backend .env.",
+            )
+        try:
+            insights = ai_service.generate_insights(df)
+        except anthropic.APIError as exc:
+            raise HTTPException(
+                status_code=502, detail=f"AI service error: {exc}"
+            ) from exc
+
+    html_doc = report_service.build_html_report(df, dataset_id, insights=insights)
+    return Response(
+        content=html_doc,
+        media_type="text/html",
+        headers={
+            "Content-Disposition": f'attachment; filename="report_{dataset_id}.html"'
+        },
+    )

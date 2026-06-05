@@ -219,3 +219,19 @@ export async function generateInsights(
   }
   return (await res.json()) as InsightsResponse;
 }
+
+// --- Report export ----------------------------------------------------------
+
+/** Fetches the downloadable HTML report for a dataset as a Blob. */
+export async function fetchReport(
+  datasetId: string,
+  includeInsights: boolean,
+): Promise<Blob> {
+  const res = await fetch(
+    `${API_BASE_URL}/datasets/${datasetId}/report?include_insights=${includeInsights}`,
+  );
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Failed to generate report"));
+  }
+  return res.blob();
+}

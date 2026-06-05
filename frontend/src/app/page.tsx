@@ -7,6 +7,7 @@ import DataQuality from "@/components/DataQuality";
 import EdaPanel from "@/components/EdaPanel";
 import AskData from "@/components/AskData";
 import Insights from "@/components/Insights";
+import ReportExport from "@/components/ReportExport";
 import type { CleanAction, CleanResult, DatasetSummary } from "@/lib/api";
 
 export default function Home() {
@@ -54,6 +55,7 @@ export default function Home() {
           <DataQuality datasetId={dataset.id} onCleaned={handleCleaned} />
           <EdaPanel datasetId={dataset.id} />
           <DatasetPreview dataset={dataset} />
+          <ReportExport datasetId={dataset.id} />
         </>
       )}
     </main>
