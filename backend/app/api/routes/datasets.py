@@ -2,14 +2,16 @@
 
 from pathlib import Path
 
+import anthropic
 import pandas as pd
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.core.config import settings
+from app.schemas.chat import AnswerResponse, QuestionRequest
 from app.schemas.cleaning import CleanResult, QualityReport
 from app.schemas.dataset import DatasetSummary
 from app.schemas.eda import ChartsResponse, EdaReport
-from app.services import cleaning_service, dataset_service, eda_service, storage
+from app.services import ai_service, cleaning_service, dataset_service, eda_service, storage
 
 router = APIRouter(prefix="/datasets", tags=["datasets"])
 
@@ -93,3 +95,28 @@ def get_charts(dataset_id: str) -> ChartsResponse:
     """Return pre-computed chart data (histograms / category bars)."""
     df = _load_dataset_or_404(dataset_id)
     return ChartsResponse(charts=eda_service.build_charts(df))
+
+
+@router.post("/{dataset_id}/ask", response_model=AnswerResponse)
+def ask_dataset(dataset_id: str, payload: QuestionRequest) -> AnswerResponse:
+    """Answer a natural-language question about the dataset using Claude."""
+    if not settings.anthropic_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="AI features are not configured. Set ANTHROPIC_API_KEY in the backend .env.",
+        )
+
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question must not be empty.")
+
+    df = _load_dataset_or_404(dataset_id)
+
+    try:
+        answer = ai_service.answer_question(df, question)
+    except anthropic.APIError as exc:  # network/auth/rate-limit/etc.
+        raise HTTPException(
+            status_code=502, detail=f"AI service error: {exc}"
+        ) from exc
+
+    return AnswerResponse(answer=answer)

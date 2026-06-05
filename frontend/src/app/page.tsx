@@ -5,6 +5,7 @@ import FileUpload from "@/components/FileUpload";
 import DatasetPreview from "@/components/DatasetPreview";
 import DataQuality from "@/components/DataQuality";
 import EdaPanel from "@/components/EdaPanel";
+import AskData from "@/components/AskData";
 import type { CleanAction, CleanResult, DatasetSummary } from "@/lib/api";
 
 export default function Home() {
@@ -47,6 +48,7 @@ export default function Home() {
             </div>
           )}
 
+          <AskData datasetId={dataset.id} />
           <DataQuality datasetId={dataset.id} onCleaned={handleCleaned} />
           <EdaPanel datasetId={dataset.id} />
           <DatasetPreview dataset={dataset} />

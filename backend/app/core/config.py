@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 50 * 1024 * 1024  # 50 MB hard limit
     preview_rows: int = 10  # how many rows to return in a dataset preview
 
+    # AI (Anthropic Claude). The key comes from .env and stays server-side.
+    anthropic_model: str = "claude-opus-4-8"  # override via ANTHROPIC_MODEL
+    ai_max_tokens: int = 2048  # max tokens for an answer
+
 
 # Single shared instance, imported across the app.
 settings = Settings()

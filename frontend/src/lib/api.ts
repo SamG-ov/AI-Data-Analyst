@@ -178,3 +178,25 @@ export async function getCharts(datasetId: string): Promise<ChartsResponse> {
     "Failed to load charts",
   );
 }
+
+// --- Natural-language Q&A ---------------------------------------------------
+
+export interface AnswerResponse {
+  answer: string;
+}
+
+/** Asks Claude a natural-language question about a dataset. */
+export async function askQuestion(
+  datasetId: string,
+  question: string,
+): Promise<AnswerResponse> {
+  const res = await fetch(`${API_BASE_URL}/datasets/${datasetId}/ask`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ question }),
+  });
+  if (!res.ok) {
+    throw new Error(await parseError(res, "Failed to get an answer"));
+  }
+  return (await res.json()) as AnswerResponse;
+}
